@@ -7,6 +7,9 @@ Data flow (streaming — SSE pipeline in stream.py):
     → AnalystFinding       (Analyst) ─┬─ parallel
     → RiskAssessment       (Contrarian)─┘
     → ResearchReport × 2  (EditorShort ‖ EditorLong, parallel) → DualResearchReport
+
+Data flow (direct API — reasoners.py POST /research):
+  Same agents, returns DualResearchReport directly.
 """
 from pydantic import BaseModel, Field
 from typing import Literal

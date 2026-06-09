@@ -12,6 +12,21 @@ NOTE: editors 4 & 5 live in stream.py and run only through the SSE pipeline
       (POST /research/stream/start → GET /research/stream/events/{id}).
       The reasoners in this file (analyst, contrarian, manager) are also
       exposed as standalone AgentField endpoints for direct API access.
+
+Flow (streaming pipeline in stream.py):
+  User Query
+    ↓
+  Manager ─ creates ResearchPlan
+    ↓
+  [asyncio.gather] yfinance data fetches (5 endpoints in parallel)
+    ↓
+  Analyst ─┬─ LLM calls dispatched concurrently via asyncio.gather
+  Contrarian─┘
+    ↓
+  EditorShort ─┬─ also parallel via asyncio.gather
+  EditorLong  ─┘
+    ↓
+  {short_term: ResearchReport, long_term: ResearchReport} → UI (tabbed)
 """
 import asyncio
 import json
@@ -367,7 +382,7 @@ async def plan_research(query: str) -> DualResearchReport:
     main_model = app.ai_config.model or "nebius/openai/gpt-oss-120b"
     editor_model = "nebius/openai/gpt-oss-20b" if main_model.startswith("nebius/") else main_model
 
-    # Step 3: Dual editors in parallel (short-term + long-term)
+    # Step 3: Dual editors in sequence (short-term then long-term)
     async def run_editor_short() -> ResearchReport:
         report: ResearchReport = await app.ai(
             system=(

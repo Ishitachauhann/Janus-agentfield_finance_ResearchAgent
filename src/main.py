@@ -3,6 +3,18 @@ main.py — Entry point for the Argus autonomous research agent.
 
 Usage:
     python src/main.py
+
+The agent will start on http://localhost:8080 and expose:
+    POST /research          → Full investment committee pipeline (Manager entry point)
+    POST /research/analyst  → Analyst (bull case) only
+    POST /research/contrarian → Contrarian (bear case) only
+    POST /research/editor   → Editor (synthesis) only
+    + all /skills/* endpoints
+
+Example query:
+    curl -X POST http://localhost:8080/research \
+         -H "Content-Type: application/json" \
+         -d '{"query": "Should I invest in AAPL?"}'
 """
 import os
 import sys

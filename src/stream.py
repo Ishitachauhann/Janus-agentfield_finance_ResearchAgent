@@ -2,7 +2,7 @@
 stream.py — Server-Sent Events (SSE) streaming for the Argus UI.
 
 Adds raw FastAPI routes to the AgentField app:
-  GET  /                  → serves the single-page frontend
+  GET  /          → serves the single-page frontend
   POST /research/stream/start       → starts a session, returns session_id
   GET  /research/stream/events/{id} → streams SSE events
 
@@ -12,6 +12,9 @@ Event types:
   agent_complete — an agent has finished, with its structured output
   error          — something went wrong
   complete       — both ResearchReports (short + long term) are ready
+
+Agent identifiers used in events:
+  manager, analyst, contrarian, editor_short, editor_long
 """
 import asyncio
 import json
@@ -97,10 +100,10 @@ def _json(obj) -> str:
 
 
 async def _run_pipeline(query: str):
-    """Full 5-agent pipeline that emits SSE events as it runs."""
+    """Full 4-agent pipeline that emits SSE events as it runs."""
 
-    # 1. Manager: create research plan
-    await emit("agent_start", "manager", {"message": f"Decomposing query: '{query}'"})
+    # ── Manager: create research plan ──────────────────────────────────────
+    await emit("agent_start", "manager", {"message": f'Decomposing query: "{query}"'})
 
     plan: ResearchPlan = await app.ai(
         system=(
@@ -125,7 +128,7 @@ async def _run_pipeline(query: str):
         "reasoning_steps": plan.reasoning_steps,
     })
 
-    # Ticker validation: early exit if not actively tradeable
+    # ── Ticker validation: early exit if not actively tradable ────────────
     await emit("agent_note", "manager", {"message": f"Validating {plan.ticker} on yfinance..."})
     ticker_check = await validate_ticker(plan.ticker)
     if not ticker_check.get("valid"):
@@ -147,10 +150,10 @@ async def _run_pipeline(query: str):
     await emit("agent_note", "manager", {"message": "Waiting 12s to respect API rate limits..."})
     await asyncio.sleep(12)
 
-    # 2. Analyst + Contrarian: SEQUENTIAL execution (to avoid Gemini 5 RPM limits)
+    # ── Analyst + Contrarian: SEQUENTIAL execution (to avoid Gemini limits) ─────────
     await emit("agent_start", "analyst", {"message": f"Pulling financials for {plan.ticker}..."})
 
-    # Fetch all data in parallel
+    # Fetch all data in parallel: annual + quarterly financials, targets, insider activity
     income, income_q, balance, cashflow, cashflow_q, facts, news, analyst_targets, insiders = await asyncio.gather(
         get_income_statement(plan.ticker, "annual"),
         get_income_statement(plan.ticker, "quarterly"),
@@ -168,13 +171,15 @@ async def _run_pipeline(query: str):
         "detail": f"Annual periods: {len(income)} | Quarterly: {len(income_q)} | News: {len(news)} | Analyst targets: {'yes' if analyst_targets else 'no'}"
     })
 
+    # Run analyst and contrarian in parallel (contrarian gets plan + will critique analyst)
     async def run_analyst():
         finding: AnalystFinding = await app.ai(
             system=(
                 "You are a senior equity research analyst building the BULL CASE. "
-                "First, populate reasoning_steps with your step-by-step analysis: what "
-                "the data shows, which metrics are most compelling, what narrative you are building. "
-                "Then write the full bull_case thesis using those insights. Cite actual numbers."
+                "First, populate reasoning_steps with your step-by-step analysis: what the data shows, "
+                "which metrics are most compelling, what narrative you are building and why. "
+                "Then write the full bull_case thesis using those insights. "
+                "Be specific: cite actual numbers."
             ),
             user=(
                 f"Ticker: {plan.ticker} ({plan.company_name})\n\n"
@@ -204,6 +209,7 @@ async def _run_pipeline(query: str):
             "risk", "lawsuit", "antitrust", "fine", "fail", "miss", "decline",
             "competition", "warn", "short", "bear", "downgrade", "probe", "loss"
         ]
+        # Filter from 20 articles; fallback to first 8 if no matches
         risk_news = [
             n for n in news
             if any(kw in (n.get("title", "") + n.get("summary", "")).lower() for kw in risk_keywords)
@@ -216,16 +222,17 @@ async def _run_pipeline(query: str):
         assessment: RiskAssessment = await app.ai(
             system=(
                 "You are a short-seller and risk manager. "
-                "First, populate reasoning_steps with your thinking: which parts of the "
-                "bull case look overstated, what risks you identified, and why they matter. "
-                "Then write the bear_case using those conclusions. Be specific with numbers."
+                "First, populate reasoning_steps with your thinking: which parts of the bull case "
+                "look overstated, what risks you identified and why they matter, how you weighed severity. "
+                "Then write the bear_case using those conclusions. "
+                "Be specific with numbers. Identify regulatory, competitive, valuation, and macro risks."
             ),
             user=(
                 f"Ticker: {plan.ticker} ({plan.company_name})\n\n"
                 f"=== RESEARCH PLAN ===\n{_json(plan)}\n\n"
-                f"=== ANALYST PRICE TARGETS (consensus) ===\n{_json(analyst_targets)}\n\n"
+                f"=== ANALYST PRICE TARGETS (wall street consensus) ===\n{_json(analyst_targets)}\n\n"
                 f"=== INSIDER TRANSACTIONS ===\n{_json(insiders)}\n\n"
-                f"=== RISK-FOCUSSED NEWS ===\n{_json(risk_news)}\n\n"
+                f"=== RISK-FOCUSED NEWS ({len(risk_news)} articles) ===\n{_json(risk_news)}\n\n"
                 f"=== COMPANY FACTS ===\n{_json(facts)}\n\n"
                 f"Provide a thorough RiskAssessment. Focus on: {', '.join(plan.focus_areas)}"
             ),
@@ -246,7 +253,7 @@ async def _run_pipeline(query: str):
     await asyncio.sleep(12)
     risk_assessment = await run_contrarian()
 
-    # 3. Editors (Short Term + Long Term): PARALLEL execution
+    # ── Editors (Short Term + Long Term): SEQUENTIAL ───────────────────────────
     CONFIDENCE_GUIDE = (
         "Confidence scoring — use this scale strictly: "
         "85-100 = overwhelming evidence, minimal counter-case; "
@@ -255,30 +262,31 @@ async def _run_pipeline(query: str):
         "<50 = too uncertain to have strong conviction."
     )
 
-    # Wait 12 seconds after Contrarian before starting Editors
-    await emit("agent_start", "editor_short", {"message": "Synthesising short-term (1–6 month) case... (waiting 12s for API limit)"})
-
-    # Determine editor model based on configuration
+    # Determine editor model dynamically based on configuration
     main_model = app.ai_config.model or "nebius/openai/gpt-oss-120b"
     editor_model = "nebius/openai/gpt-oss-20b" if main_model.startswith("nebius/") else main_model
+
+    # Wait 12 seconds after Contrarian before starting Editors
+    await emit("agent_start", "editor_short", {"message": "Synthesising short-term (1–6 month) case... (waiting 12s for API limit)"})
 
     async def run_editor_short():
         report: ResearchReport = await app.ai(
             system=(
                 "You are a short-term investment analyst (1–6 month horizon). "
-                "First, populate reasoning_steps with your deliberation: which near-term "
-                "catalysts or risks dominated your thinking, and why you chose this verdict. "
+                "First, populate reasoning_steps with your deliberation: which near-term catalysts "
+                "or risks dominated your thinking, and why you chose this verdict. "
                 "Focus ONLY on near-term factors: upcoming earnings, analyst price targets, "
-                "news sentiment, technical momentum, insider activity, macro events. "
+                "news sentiment, technical momentum, insider activity, macro events in the next 6 months. "
                 "Ignore long-term structural factors — they are irrelevant here. "
-                f"{CONFIDENCE_GUIDE} Set time_horizon='short_term'. "
+                f"{CONFIDENCE_GUIDE} "
+                "Set time_horizon='short_term'. "
                 "Arrive at a BUY/HOLD/SELL for the NEXT 1–6 MONTHS."
             ),
             user=(
                 f"Ticker: {plan.ticker} ({plan.company_name})\n\n"
                 f"=== ANALYST PRICE TARGETS & CONSENSUS ===\n{_json(analyst_targets)}\n\n"
                 f"=== INSIDER TRANSACTIONS ===\n{_json(insiders)}\n\n"
-                f"=== QUARTERLY INCOME (last 4 quarters) ===\n{_json(income_q)}\n\n"
+                f"=== QUARTERLY INCOME (last 4 quarters — short-term trend) ===\n{_json(income_q)}\n\n"
                 f"=== QUARTERLY CASH FLOW ===\n{_json(cashflow_q)}\n\n"
                 f"=== ANALYST FINDING (BULL) ===\n{_json(analyst_finding)}\n\n"
                 f"=== RISK ASSESSMENT (BEAR) ===\n{_json(risk_assessment)}\n\n"
@@ -305,7 +313,8 @@ async def _run_pipeline(query: str):
                 "balance sheet strength, management quality, industry tailwinds/headwinds, "
                 "valuation vs intrinsic value over 5 years. "
                 "Ignore short-term noise — it is irrelevant here. "
-                f"{CONFIDENCE_GUIDE} Set time_horizon='long_term'. "
+                f"{CONFIDENCE_GUIDE} "
+                "Set time_horizon='long_term'. "
                 "Arrive at a BUY/HOLD/SELL for the NEXT 1–5 YEARS."
             ),
             user=(
@@ -314,6 +323,7 @@ async def _run_pipeline(query: str):
                 f"=== INSIDER TRANSACTIONS ===\n{_json(insiders)}\n\n"
                 f"=== ANALYST FINDING (BULL) ===\n{_json(analyst_finding)}\n\n"
                 f"=== RISK ASSESSMENT (BEAR) ===\n{_json(risk_assessment)}\n\n"
+                f"=== COMPANY FACTS ===\n{_json(facts)}\n\n"
                 "Synthesise a LONG-TERM ResearchReport (time_horizon='long_term')."
             ),
             schema=ResearchReport,
@@ -353,7 +363,6 @@ async def start_stream(body: StreamQuery):
     """Start a streaming research session. Returns a session_id."""
     session_id = str(uuid.uuid4())
     _sessions[session_id] = asyncio.Queue()
-
     # Run pipeline in background, bound to this session's queue
     token = _current_queue.set(_sessions[session_id])
 
