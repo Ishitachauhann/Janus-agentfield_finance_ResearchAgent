@@ -1,5 +1,5 @@
 """
-skills.py — Deterministic data-fetching tools for the Janus agent.
+skills.py — Deterministic data-fetching tools for the Argus agent.
 
 All skills use yfinance (free, no API key needed) to pull real financial data
 from Yahoo Finance. They are registered as @app.skill decorators so AgentField

@@ -1,5 +1,5 @@
 """
-reasoners.py — The five-agent Investment Committee for Janus.
+reasoners.py — The five-agent Investment Committee for Argus.
 
 Agent roles:
   1. plan_research      → The Manager      (Adaptive Supervisor)

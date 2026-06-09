@@ -1,5 +1,5 @@
 """
-stream.py — Server-Sent Events (SSE) streaming for the Janus UI.
+stream.py — Server-Sent Events (SSE) streaming for the Argus UI.
 
 Adds raw FastAPI routes to the AgentField app:
   GET  /                  → serves the single-page frontend
@@ -387,6 +387,6 @@ async def stream_events(session_id: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_ui():
-    """Serve the Janus UI."""
+    """Serve the Argus UI."""
     ui_path = Path(__file__).parent.parent / "ui" / "index.html"
     return HTMLResponse(content=ui_path.read_text())
