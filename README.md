@@ -4,6 +4,10 @@ An autonomous financial research agent built on [AgentField](https://dub.sh/agen
 
 To support the project under standard Google Gemini Free Tier quotas (which have a strict 5 Requests Per Minute rate limit and a 20 Requests Per Day limit on the standard Flash model), the project executes the committee **sequentially** with **12-second throttling pauses** between LLM requests. It is configured to run on `gemini-2.5-flash-lite` (which supports high-volume daily requests on the free tier).
 
+(for Concurrency & Speed: The Analyst and Contrarian run in parallel. Then both Editors run in parallel. This is true concurrency via asyncio.gather, not sequential execution. teh goal was to -Dispatche LLM requests in parallel (asyncio.gather). Works only on paid/high-quota keys.)---- 
+instead have used Sequential Throttling (12s pauses). We serialized the agent runs to prevent hitting the 5 RPM rate limit on your free Gemini key.
+
+
 ---
 
 ## Architecture
