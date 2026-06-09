@@ -47,37 +47,54 @@ Unlike simple, single-prompt AI search tools that hallucinate or provide surface
 4. **Contrarian (Bear Case)**: Red-teams the Analyst’s case by identifying structural risks, regulatory hurdles, and competitive threats.
 5. **Editors (Short & Long Term)**: Merge the opposing arguments into objective, dual-horizon investment reports complete with calibrated confidence scores (0-100) and BUY/HOLD/SELL verdicts.
 
-*Note: For maximum cost-effectiveness on standard enterprise cloud API quotas, the system executes these steps sequentially with a 12-second spacing, guaranteeing zero rate-limit interruptions.*
+---
+
+## 2. Key Enhancements: Making the Project Better
+
+Compared to the reference repository setup, we have introduced several critical operational optimizations and enhancements to make this system production-ready, highly flexible, and resilient to real-world limitations:
+
+### A. Provider Agnosticism (Dynamic Model Routing)
+*   **Original Setup**: Hardcoded to specific Nebius models (`gpt-oss-120b` and `gpt-oss-20b`). If the user does not have a Nebius key, the application is unusable.
+*   **Our Enhancement**: We introduced a dynamic configuration layer loading `LLM_MODEL` from your `.env` file. You can seamlessly switch between **Google Gemini, OpenAI, Anthropic, or Nebius** by editing a single environment variable, without changing a line of source code.
+
+### B. Rate-Limit Resiliency (Sequential Throttling)
+*   **Original Setup**: Dispatches LLM calls concurrently (`asyncio.gather`), which crashes instantly on standard API keys that have strict Requests Per Minute (RPM) limits.
+*   **Our Enhancement**: We serialized the agent executions and added strategic **12-second debouncing pauses** between LLM requests. This ensures the system runs robustly on standard key tiers without needing expensive enterprise API contracts immediately.
+
+### C. Free-Tier Optimization & Cost Reduction
+*   **Original Setup**: Requires paid API keys to prevent exceeding strict limits on standard models.
+*   **Our Enhancement**: Configured to run on `gemini-2.5-flash-lite`, which successfully bypasses the strict 20-request daily limit of standard preview models (supporting up to 1,500 requests per day), making testing and staging completely free.
+
+### D. User-Centric UI Throttling Indicators
+*   **Original Setup**: UI is unaware of API-level pauses and can appear frozen.
+*   **Our Enhancement**: Real-time throttling status notes (e.g., *"waiting 12s for API limit"*) are streamed via Server-Sent Events (SSE) directly to the dashboard, keeping users informed and the interface feeling alive during pauses.
+
+### E. Clean Standalone Architecture
+*   **Original Setup**: Distributed as part of a larger monorepo with unrelated config files.
+*   **Our Enhancement**: Isolated into a clean, standalone repository with a professional `.gitignore` to protect sensitive local credentials (like `.env`) from being committed to public hosting platforms.
 
 ---
 
-## 2. Corporate Advantages & Value Proposition
+## 3. Corporate Advantages & Value Proposition
 
 Deploying an autonomous investment committee provides immediate advantages to corporate and enterprise environments:
 
 ### A. Massive Time & Cost Efficiency
-*   **The Problem**: Collecting income statements, cash flows, consensus target prices, and filtering the last 20 news articles for risk signals takes a human analyst 1 to 2 hours per ticker.
-*   **The AI Advantage**: Argus aggregates, filters, and summarizes these sources in **60 seconds**. A single analyst can cover 10x more tickers, redirecting their hours toward final deal structuring and client advisory.
+*   **The Problem**: Collecting statements, cash flows, consensus targets, and news logs takes an analyst 1 to 2 hours per ticker.
+*   **The AI Advantage**: Aggregates and summarizes these sources in **60 seconds**, allowing analysts to cover 10x more tickers.
 
 ### B. Elimination of Confirmation Bias (The "Red-Team" Effect)
-*   **The Problem**: Human investment committees frequently suffer from herd mentality and confirmation bias, overlooking key risks once they become excited about a company's growth profile.
-*   **The AI Advantage**: Argus forces a structured debate. The **Contrarian Agent** is specifically prompted to behave as a short-seller and risk manager, actively trying to invalidate the **Analyst's** bull case. This guarantees every final executive report presents a balanced view of both opportunities and threats.
+*   **The Problem**: Human investment committees frequently suffer from herd mentality and confirmation bias.
+*   **The AI Advantage**: The Contrarian Agent is specifically prompted to behave as a risk manager, guaranteeing every final executive report presents a balanced view of both opportunities and threats.
 
 ### C. Strict Auditability & Compliance (Live Chain-of-Thought)
-*   **The Problem**: AI outputs are often "black boxes" where it is impossible to understand how a recommendation was reached, creating regulatory and compliance risks.
-*   **The AI Advantage**: Every agent in the Argus committee must output its `reasoning_steps` *before* generating its final structured schema. These reasoning steps are streamed live and saved, providing a transparent audit trail of *why* the AI chose a particular verdict and confidence score.
-
-### D. Dual Horizon Alignment
-*   **The Problem**: Corporate strategies require separate tactical (near-term cash/catalysts) and strategic (long-term moat/market trends) views. Combining these into a single report muddies the analysis.
-*   **The AI Advantage**: The pipeline runs two separate, specialized Editor agents:
-    *   **Short-Term Editor**: Synthesizes near-term catalysts (earnings momentum, short-term news, technical targets).
-    *   **Long-Term Editor**: Focuses purely on long-term structures (competitive moats, R&D pipeline value, geopolitical vulnerabilities).
+*   **The Problem**: AI outputs are often "black boxes," creating compliance risks.
+*   **The AI Advantage**: Every agent outputs its `reasoning_steps` *before* generating its verdict, providing a transparent audit trail.
 
 ---
 
-## 3. Enterprise Deployment Scenarios
+## 4. Enterprise Deployment Scenarios
 
-*   **Asset Management & Hedge Funds**: Rapid screening of new investment candidates and initial red-teaming of analyst ideas.
-*   **Corporate M&A Teams**: Running initial fundamental and risk profiles on potential acquisition targets.
-*   **Equity Research Support**: Assisting junior analysts by generating comprehensive data summaries and balanced drafts.
-*   **Investor Relations**: Tracking competitor performance and compiling quick market sentiment reports on peer companies.
+*   **Asset Management & Hedge Funds**: Rapid screening of new candidates and initial red-teaming of analyst ideas.
+*   **Corporate M&A Teams**: Running initial fundamental and risk profiles on potential targets.
+*   **Equity Research Support**: Assisting junior analysts by generating data summaries and balanced drafts.
