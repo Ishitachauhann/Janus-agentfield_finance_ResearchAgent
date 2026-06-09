@@ -3,13 +3,13 @@
 ## Executive Summary
 In corporate finance, wealth management, and strategic M&A, research is a labor-intensive process. Financial analysts spend up to **70% of their time** aggregating data—pulling balance sheets, parsing news, and compiling consensus targets—before performing high-value synthesis. 
 
-**Argus** solves this by automating the initial aggregation, debate, and synthesis phases using a **5-agent autonomous investment committee** powered by **AgentField**. By structuring LLMs into specialized roles (Manager, Bull Analyst, Bear Contrarian, and Dual-Horizon Editors), Argus delivers comprehensive, objective investment briefs in under a minute, directly transforming corporate research efficiency.
+**Equinox** solves this by automating the initial aggregation, debate, and synthesis phases using a **5-agent autonomous investment committee** powered by **AgentField**. By structuring LLMs into specialized roles (Manager, Bull Analyst, Bear Contrarian, and Dual-Horizon Editors), Equinox delivers comprehensive, objective investment briefs in under a minute, directly transforming corporate research efficiency.
 
 ---
 
 ## 1. Technical Architecture: How It Works
 
-Unlike simple, single-prompt AI search tools that hallucinate or provide surface-level summaries, Argus operates as a structured pipeline of collaborative agents:
+Unlike simple, single-prompt AI search tools that hallucinate or provide surface-level summaries, Equinox operates as a structured pipeline of collaborative agents:
 
 ```
                   ┌──────────────────────┐

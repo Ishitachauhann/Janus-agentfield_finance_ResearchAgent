@@ -1,5 +1,5 @@
 """
-Argus — Autonomous Research Agent
+Equinox — Autonomous Research Agent
 Exports the shared `app` Agent instance used across all modules.
 
 Authentication is handled automatically via environment variables:
@@ -14,7 +14,7 @@ load_dotenv()
 llm_model = os.getenv("LLM_MODEL", "nebius/openai/gpt-oss-120b")
 
 app = Agent(
-    node_id="argus-research-agent",
+    node_id="equinox-research-agent",
     # LiteLLM requires the provider prefix for Nebius Token Factory
     ai_config=AIConfig(model=llm_model),
     # Disable cloud hub connection — we run fully local, no AgentField cloud needed.

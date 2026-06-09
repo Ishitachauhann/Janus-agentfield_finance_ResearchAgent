@@ -1,5 +1,5 @@
 """
-schemas.py — Pydantic models for the Argus Investment Committee pipeline.
+schemas.py — Pydantic models for the Equinox Investment Committee pipeline.
 
 Data flow (streaming — SSE pipeline in stream.py):
   User Query

@@ -1,5 +1,5 @@
 """
-main.py — Entry point for the Argus autonomous research agent.
+main.py — Entry point for the Equinox autonomous research agent.
 
 Usage:
     python src/main.py
@@ -39,7 +39,7 @@ import src.stream    # noqa: F401, E402 — SSE endpoints + UI serving
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    print(f"🔬 Argus Research Agent starting on http://localhost:{port}")
+    print(f"🔬 Equinox Research Agent starting on http://localhost:{port}")
     print("📈 5-Agent Investment Committee:")
     print(f"   POST http://localhost:{port}/research               ← Full pipeline (all 5 agents)")
     print(f"   POST http://localhost:{port}/research/analyst       ← Bull case only")

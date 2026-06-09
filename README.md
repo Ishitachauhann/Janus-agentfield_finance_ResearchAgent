@@ -1,4 +1,4 @@
-# Building a Production-Ready Multi-Agent Investment Committee with AgentField (Argus 🔬)
+# Building a Production-Ready Multi-Agent Investment Committee with AgentField (Equinox 🔬)
 
 An autonomous financial research agent built on [AgentField](https://dub.sh/agentf). This project uses a **5-agent Investment Committee** to produce two parallel research reports — one for **short-term** (1-6 months) and one for **long-term** (1-5 year) investment horizons.
 
@@ -88,7 +88,7 @@ Open **http://localhost:8080** in your browser. Type any query (e.g. *"Should I 
 
 ## Usage / API Options
 
-Argus exposes two ways to run the full 5-agent pipeline:
+Equinox exposes two ways to run the full 5-agent pipeline:
 
 ### Option A — Streaming API (used by the UI)
 Sends events in real-time as each agent completes.
